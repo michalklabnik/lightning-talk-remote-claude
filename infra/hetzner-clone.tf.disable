@@ -1,0 +1,91 @@
+# Hetzner Cloud VM clone
+# cx43 in Helsinki — Tailscale-only access, firewall blocks all inbound
+# Shares SSH key + cloud-init locals from hetzner.tf
+
+# ---------------------------------------------------------------------------
+# Firewall
+# ---------------------------------------------------------------------------
+
+resource "hcloud_firewall" "clone" {
+  name = "hetzner-hel1-clone-fw"
+
+  # Dummy rule — allows ICMP from localhost only (no real traffic)
+  # Ensures provider always calls SetRules API
+  rule {
+    direction   = "in"
+    protocol    = "icmp"
+    source_ips  = ["127.0.0.1/32"]
+    description = "dummy rule — hcloud provider workaround"
+  }
+
+  dynamic "rule" {
+    for_each = var.enable_ssh_firewall && length(var.admin_ips) > 0 ? [1] : []
+    content {
+      direction  = "in"
+      protocol   = "tcp"
+      port       = "22"
+      source_ips = var.admin_ips
+    }
+  }
+
+  labels = {
+    managed_by = "opentofu"
+  }
+}
+
+resource "hcloud_firewall_attachment" "clone" {
+  firewall_id = hcloud_firewall.clone.id
+  server_ids  = [hcloud_server.clone.id]
+}
+
+# ---------------------------------------------------------------------------
+# Server
+# ---------------------------------------------------------------------------
+
+resource "hcloud_server" "clone" {
+  name        = "hetzner-hel1-cx43-clone"
+  server_type = "cx43"
+  image       = "ubuntu-24.04"
+  location    = "hel1"
+
+  ssh_keys  = [hcloud_ssh_key.jajsem_ed25519.id]
+  user_data = local.hetzner_cloud_init
+
+  public_net {
+    ipv4_enabled = true
+    ipv6_enabled = true
+  }
+
+  backups                  = false
+  shutdown_before_deletion = true
+
+  labels = {
+    managed_by = "opentofu"
+    location   = "hel1"
+    type       = "cx43"
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Outputs
+# ---------------------------------------------------------------------------
+
+output "hetzner_clone_vm_name" {
+  description = "Name of the Hetzner clone server"
+  value       = hcloud_server.clone.name
+}
+
+output "hetzner_clone_vm_ipv4" {
+  description = "Public IPv4 address of the Hetzner clone server"
+  value       = hcloud_server.clone.ipv4_address
+}
+
+output "hetzner_clone_vm_ipv6" {
+  description = "Public IPv6 address of the Hetzner clone server"
+  value       = hcloud_server.clone.ipv6_address
+}
+
+output "hetzner_clone_vm_status" {
+  description = "Current status of the Hetzner clone server"
+  value       = hcloud_server.clone.status
+}

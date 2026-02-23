@@ -1,0 +1,134 @@
+#cloud-config
+
+package_update: true
+package_upgrade: true
+
+write_files:
+  - path: /etc/skel/.bash_aliases
+    permissions: '0644'
+    content: |
+      ${indent(6, bash_aliases)}
+  - path: /root/.bash_aliases
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ${indent(6, bash_aliases)}
+
+packages:
+  - apt-transport-https
+  - build-essential
+  - ca-certificates
+  - curl
+  - git
+  - gnupg
+  - htop
+  - jq
+  - less
+  - lsb-release
+  - nano
+  - pipx
+  - python3
+  - python3-pip
+  - python3-venv
+  - ruby
+  - ruby-dev
+  - shellcheck
+  - software-properties-common
+  - tree
+  - unzip
+  - wget
+
+users:
+  - name: ${username}
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+%{ for key in ssh_public_keys ~}
+      - ${key}
+%{ endfor ~}
+    lock_passwd: true
+
+runcmd:
+  # --- Docker (official get.docker.com script, auto-detects architecture) ---
+  - ['sh', '-c', 'curl -fsSL https://get.docker.com | sh']
+  - ['usermod', '-aG', 'docker', '${username}']
+
+  # --- Node.js 20 LTS (official NodeSource repository, auto-detects architecture) ---
+  - ['sh', '-c', 'curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list > /dev/null && apt-get update && apt-get install -y nodejs']
+
+  # --- GitHub CLI (official apt repository) ---
+  - ['sh', '-c', 'ARCH=$(dpkg --print-architecture) && mkdir -p -m 755 /etc/apt/keyrings && wget -nv -O /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$${ARCH} signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && apt-get update && apt-get install -y gh']
+
+  # --- Terraform (official HashiCorp apt repository) ---
+  - ['sh', '-c', 'ARCH=$(dpkg --print-architecture) && CODENAME=$(lsb_release -cs) && wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null && echo "deb [arch=$${ARCH} signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $${CODENAME} main" | tee /etc/apt/sources.list.d/hashicorp.list && apt-get update && apt-get install -y terraform']
+
+  # --- OpenTofu (official apt repository) ---
+  - ['sh', '-c', 'install -m 0755 -d /etc/apt/keyrings && curl -fsSL https://get.opentofu.org/opentofu.gpg | tee /etc/apt/keyrings/opentofu.gpg >/dev/null && curl -fsSL https://packages.opentofu.org/opentofu/tofu/gpgkey | gpg --no-tty --batch --dearmor -o /etc/apt/keyrings/opentofu-repo.gpg >/dev/null && chmod a+r /etc/apt/keyrings/opentofu.gpg /etc/apt/keyrings/opentofu-repo.gpg && echo "deb [signed-by=/etc/apt/keyrings/opentofu.gpg,/etc/apt/keyrings/opentofu-repo.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main\ndeb-src [signed-by=/etc/apt/keyrings/opentofu.gpg,/etc/apt/keyrings/opentofu-repo.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main" | tee /etc/apt/sources.list.d/opentofu.list > /dev/null && chmod a+r /etc/apt/sources.list.d/opentofu.list && apt-get update && apt-get install -y tofu']
+
+  # --- Azure CLI (official Microsoft install script, auto-detects architecture) ---
+  - ['sh', '-c', 'curl -sL https://aka.ms/InstallAzureCLIDeb | bash']
+
+  # --- yq (Mike Farah, direct binary from GitHub, architecture-aware) ---
+  - ['sh', '-c', 'ARCH=$(dpkg --print-architecture) && wget "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$${ARCH}" -O /usr/local/bin/yq && chmod +x /usr/local/bin/yq']
+
+  # --- kubectl (official Kubernetes binary, architecture-aware) ---
+  - ['sh', '-c', 'ARCH=$(dpkg --print-architecture) && KUBE_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt) && curl -LO "https://dl.k8s.io/release/$${KUBE_VERSION}/bin/linux/$${ARCH}/kubectl" && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && rm -f kubectl']
+
+  # --- kubelogin (Azure AD auth plugin, architecture-aware) ---
+  - ['sh', '-c', 'ARCH=$(dpkg --print-architecture) && KUBELOGIN_VERSION=$(curl -sL https://api.github.com/repos/Azure/kubelogin/releases/latest | jq -r ".tag_name") && curl -LO "https://github.com/Azure/kubelogin/releases/download/$${KUBELOGIN_VERSION}/kubelogin-linux-$${ARCH}.zip" && unzip "kubelogin-linux-$${ARCH}.zip" -d kubelogin-tmp && install -o root -g root -m 0755 "kubelogin-tmp/bin/linux_$${ARCH}/kubelogin" /usr/local/bin/kubelogin && rm -rf "kubelogin-linux-$${ARCH}.zip" kubelogin-tmp']
+
+  # --- tflint (official install script, auto-detects architecture) ---
+  - ['sh', '-c', 'curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash']
+
+  # --- yamllint (via pipx, system-wide to /usr/local/bin) ---
+  - ['sh', '-c', 'PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install yamllint']
+
+  # --- mdl markdownlint (Ruby gem, installed system-wide) ---
+  - ['gem', 'install', 'mdl']
+
+  # --- pre-commit (via pipx, system-wide to /usr/local/bin) ---
+  - ['sh', '-c', 'PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install pre-commit']
+
+  # --- uv (official Astral install script, system-wide, no shell profile modification) ---
+  - ['sh', '-c', 'curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh']
+
+  # --- npm global packages (pre-install to avoid download delay at runtime) ---
+  - ['npm', 'install', '-g', '@modelcontextprotocol/server-filesystem']
+
+  # --- Tailscale (official install script, auto-detects architecture) ---
+  - ['sh', '-c', 'curl -fsSL https://tailscale.com/install.sh | sh']
+  - ['sh', '-c', "echo 'net.ipv4.ip_forward = 1' | tee -a /etc/sysctl.d/99-tailscale.conf && echo 'net.ipv6.conf.all.forwarding = 1' | tee -a /etc/sysctl.d/99-tailscale.conf && sysctl -p /etc/sysctl.d/99-tailscale.conf"]
+  - ['tailscale', 'up', '--authkey=${tailscale_auth_key}', '--ssh']
+
+  # --- Claude Code CLI (official Anthropic native installer, installed as target user) ---
+  - ['su', '-', '${username}', '-c', 'curl -fsSL https://claude.ai/install.sh | bash']
+  - ['sh', '-c', 'ln -sf /home/${username}/.local/bin/claude /usr/local/bin/claude']
+
+  # --- User-level setup (run as the created user) ---
+
+  # Ensure pipx tools are on PATH for the user
+  - ['su', '-', '${username}', '-c', 'pipx ensurepath']
+
+  # GitHub CLI authentication
+  - ['su', '-', '${username}', '-c', 'echo "${github_token}" | gh auth login --with-token']
+
+  # Azure CLI authentication
+  - ['su', '-', '${username}', '-c', 'az login --service-principal -u "${azure_sp_appid}" -p "${azure_sp_password}" --tenant "${azure_sp_tenant}"']
+
+  # Claude Code MCP servers (user scope)
+  - ['su', '-', '${username}', '-c', 'claude mcp add --scope user --transport http context7 https://mcp.context7.com/mcp']
+  - ['su', '-', '${username}', '-c', 'claude mcp add --scope user --transport http deepwiki https://mcp.deepwiki.com/mcp']
+  - ['su', '-', '${username}', '-c', 'claude mcp add --scope user --transport sse opentofu https://mcp.opentofu.org/sse']
+  - ['su', '-', '${username}', '-c', 'claude mcp add --scope user filesystem -- npx -y @modelcontextprotocol/server-filesystem /home/${username}']
+  - ['su', '-', '${username}', '-c', 'claude mcp add --scope user playwright -- npx -y @playwright/mcp --headless --browser=chromium']
+
+  # --- Notification: cloud-init completed ---
+  - ['sh', '-c', 'curl -s -d "Cloud-init completed on $(hostname) ($(curl -4s ifconfig.me/ip))" https://ntfy.sh/${ntfy_channel}']
+
+power_state:
+  delay: now
+  mode: reboot
+  message: "Rebooting after cloud-init provisioning"
+  timeout: 30
+  condition: test -f /var/run/reboot-required

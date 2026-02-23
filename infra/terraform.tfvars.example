@@ -1,0 +1,74 @@
+# =============================================================================
+# Shared / Common
+# =============================================================================
+
+# Path to directory containing SSH public keys (all *.pub files will be added)
+ssh_public_key_path = "ssh-key"
+
+# [SENSITIVE] Tailscale pre-auth key (reusable, pre-approved)
+# Generate at: https://login.tailscale.com/admin/settings/keys
+tailscale_auth_key = ""
+
+# Non-root username for VMs (default: "claude")
+vm_username = "claude"
+
+# SSH firewall exception (for debugging — enable + add your IPs)
+enable_ssh_firewall = false
+admin_ips           = []
+
+# [SENSITIVE] GitHub personal access token for gh CLI
+# Generate at: https://github.com/settings/tokens
+github_token = ""
+
+# Azure service principal credentials for az CLI
+# Create SP: az ad sp create-for-rbac --name "claude-vm"
+azure_sp_tenant   = ""
+azure_sp_appid    = ""
+azure_sp_password = ""
+
+# ntfy.sh channel for cloud-init completion notifications
+ntfy_channel = "mk-remote-claude-CHANGE_ME"
+
+# =============================================================================
+# Hetzner Cloud
+# =============================================================================
+
+# [SENSITIVE] API token from Hetzner Cloud Console
+# Go to: https://console.hetzner.cloud/ > Project > Security > API Tokens
+hcloud_token = ""
+
+# =============================================================================
+# Oracle Cloud
+# =============================================================================
+
+# Oracle Cloud tenancy OCID
+# Find at: https://cloud.oracle.com/ > Profile > Tenancy (format: ocid1.tenancy.oc1..xxx)
+oci_tenancy_ocid = ""
+
+# Oracle Cloud user OCID
+# Find at: https://cloud.oracle.com/ > Profile > My profile (format: ocid1.user.oc1..xxx)
+oci_user_ocid = ""
+
+# [SENSITIVE] Oracle Cloud API key fingerprint
+# Find at: https://cloud.oracle.com/ > Profile > My profile > API keys (format: aa:bb:cc:dd:...)
+oci_fingerprint = ""
+
+# Path to Oracle Cloud API private key PEM file
+# Generate at: https://cloud.oracle.com/ > Profile > My profile > API keys > Add API key
+oci_private_key_path = "~/.oci/oci_api_key.pem"
+
+# Oracle Cloud region — must be home region for free tier (default: "eu-frankfurt-1")
+# Full list: https://docs.oracle.com/en-us/iaas/Content/General/Concepts/regions.htm
+#oci_region = "eu-frankfurt-1"
+
+# Availability domain index (0-2). Frankfurt has 3 ADs — try different ones if capacity is full.
+#oracle_ad_index = 0
+
+# Number of OCPUs for the Oracle ARM VM (free tier max: 4)
+#oracle_ocpus = 4
+
+# Memory in GB for the Oracle ARM VM (free tier max: 24)
+#oracle_memory_in_gbs = 24
+
+# Boot volume size in GB (free tier: 50 GB default, 200 GB max shared across all instances)
+#oracle_boot_volume_size_in_gbs = 50

@@ -1,7 +1,22 @@
 ### General template
 .claude/settings.local.json
 
+### OpenTofu / Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/terraform.tfvars
+infra/*.tfplan
+infra/crash.log
+infra/crash.*.log
+infra/override.tf
+infra/override.tf.json
+infra/*_override.tf
+infra/*_override.tf.json
 
+### SSH keys — never commit private keys (public keys are OK)
+infra/ssh-key/*
+!infra/ssh-key/*.pub
 
 ### VisualStudioCode template
 .vscode/*
